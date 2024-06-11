@@ -1,98 +1,14 @@
-var express = require("express");
-var { createHandler } = require("graphql-http/lib/use/express");
-var {
-  buildSchema,
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLString,
-  GraphQLInt,
-  graphql,
-} = require("graphql");
-var { ruruHTML } = require("ruru/server");
+import express from "express";
+import { ruruHTML } from "ruru/server";
+import { createYoga } from "graphql-yoga";
+import { schema } from "./src/graphql/index.js";
 
-// Construct a schema, using GraphQL schema language
-var scchema = buildSchema(`
-  type Query {
-    hello(name: String): String
-	age: Int
-	user: User
-  }
-
-  type User {
-    id: Int
-	name: String
-  }
-`);
-
-const User = new GraphQLObjectType({
-  name: "User",
-  fields: {
-    id: {
-      type: GraphQLInt,
-    },
-    name: {
-      type: GraphQLString,
-      resolve: (obj) => {
-        const name = obj.name.trim().toUpperCase();
-        if (obj.isAdmin) {
-          return "yes, he is admin";
-        }
-        return name;
-      },
-    },
-  },
+const yoga = createYoga({
+  schema,
 });
 
-const schema = new GraphQLSchema({
-  query: new GraphQLObjectType({
-    name: "Query",
-    fields: {
-      hello: {
-        type: GraphQLString,
-        resolve: () => {
-          return "Hello World";
-        },
-      },
-      user: {
-        type: User,
-        resolve: () => {
-          return {
-            id: 1,
-            name: "    sherpa      ",
-            extra: "hey",
-            isAdmin: true,
-          };
-        },
-      },
-    },
-  }),
-});
-
-// The root provides a resolver function for each API endpoint
-// var root = {
-//   hello(args) {
-//     return "Hello " + args.name;
-//   },
-//   age() {
-//     return 25;
-//   },
-//   user: () => {
-//     return {
-//       id: 5,
-//       name: "Phutila",
-//     };
-//   },
-// };
-
-var app = express();
-
-// Create and use the GraphQL handler.
-app.all(
-  "/graphql",
-  createHandler({
-    schema: schema,
-  })
-);
+const app = express();
+app.all("/graphql", yoga);
 
 //serve the graphiQL IDE.
 app.get("/", (_req, res) => {
