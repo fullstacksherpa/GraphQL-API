@@ -1,25 +1,88 @@
 var express = require("express");
 var { createHandler } = require("graphql-http/lib/use/express");
-var { buildSchema } = require("graphql");
+var {
+  buildSchema,
+  GraphQLSchema,
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLInt,
+  graphql,
+} = require("graphql");
 var { ruruHTML } = require("ruru/server");
 
 // Construct a schema, using GraphQL schema language
-var schema = buildSchema(`
+var scchema = buildSchema(`
   type Query {
-    hello: String,
+    hello(name: String): String
 	age: Int
+	user: User
+  }
+
+  type User {
+    id: Int
+	name: String
   }
 `);
 
+const User = new GraphQLObjectType({
+  name: "User",
+  fields: {
+    id: {
+      type: GraphQLInt,
+    },
+    name: {
+      type: GraphQLString,
+      resolve: (obj) => {
+        const name = obj.name.trim().toUpperCase();
+        if (obj.isAdmin) {
+          return "yes, he is admin";
+        }
+        return name;
+      },
+    },
+  },
+});
+
+const schema = new GraphQLSchema({
+  query: new GraphQLObjectType({
+    name: "Query",
+    fields: {
+      hello: {
+        type: GraphQLString,
+        resolve: () => {
+          return "Hello World";
+        },
+      },
+      user: {
+        type: User,
+        resolve: () => {
+          return {
+            id: 1,
+            name: "    sherpa      ",
+            extra: "hey",
+            isAdmin: true,
+          };
+        },
+      },
+    },
+  }),
+});
+
 // The root provides a resolver function for each API endpoint
-var root = {
-  hello() {
-    return "Hello world!";
-  },
-  age() {
-    return 25;
-  },
-};
+// var root = {
+//   hello(args) {
+//     return "Hello " + args.name;
+//   },
+//   age() {
+//     return 25;
+//   },
+//   user: () => {
+//     return {
+//       id: 5,
+//       name: "Phutila",
+//     };
+//   },
+// };
 
 var app = express();
 
@@ -28,7 +91,6 @@ app.all(
   "/graphql",
   createHandler({
     schema: schema,
-    rootValue: root,
   })
 );
 
