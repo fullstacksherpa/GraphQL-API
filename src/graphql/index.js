@@ -1,5 +1,6 @@
 import { createSchema } from "graphql-yoga";
 import { typeDef as User, resolvers as userResolvers } from "./models/user.js";
+import { typeDef as Comment, resolvers as commentResolvers } from "./models/comments.js";
 import _ from "lodash";
 
 const queries = `type Query {
@@ -13,7 +14,7 @@ const resolvers = {
 };
 
 export const schema = createSchema({
-  typeDefs: [queries, User],
+  typeDefs: [queries, User, Comment],
 
-  resolvers: _.merge(resolvers, userResolvers),
+  resolvers: _.merge(resolvers, userResolvers, commentResolvers),
 });
