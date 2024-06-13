@@ -1,47 +1,67 @@
+import { ObjectId } from "mongodb";
+
 export const typeDef =
   /* GraphQL */
   `
     type Query {
-      user: User
+      user(id: ID!): User
+      users: [User]!
     }
 
     type Mutation {
       createUser(user: NewUserInput!): User
+      deleteUser(id: ID!): Boolean
+      updateUser(id: ID!, update: UpdateUserInput): User
+    }
+
+    input UpdateUserInput {
+      name: String!
     }
 
     input NewUserInput {
       name: String!
-      age: Int!
+      email: String!
     }
 
     type User {
-      id: Int
+      id: ID!
       name: String
-      age: Int
+      email: String
     }
   `;
 
 export const resolvers = {
   Query: {
-    user: () => {
-      return {
-        id: 1,
-        name: "Sherpa",
-      };
+    users: (obj, args, { mongo }) => {
+      return mongo.users.find().limit(5).toArray();
+    },
+    user: (obj, { id }, { mongo }) => {
+      return mongo.users.findOne({ _id: new ObjectId(id) });
     },
   },
 
   Mutation: {
     createUser: async (_, { user }, { mongo }) => {
-      const movies = await mongo.movies.find().toArray();
-      console.log(movies);
+      console.log(user);
+      const response = await mongo.users.insertOne(user);
+      console.log(user);
       return {
-        id: 1,
         ...user,
       };
     },
+    deleteUser: async (obj, { id }, { mongo }) => {
+      await mongo.users.deleteOne({ _id: new ObjectId(id) });
+      return true;
+    },
+    updateUser: async (obj, { id, update }, { mongo }) => {
+      await mongo.users.updateOne({ _id: new ObjectId(id) }, { $set: { name: update.name } });
+      return mongo.users.findOne({ _id: new ObjectId(id) });
+    },
   },
   User: {
+    id: (obj) => {
+      return obj._id || obj.id;
+    },
     name: (obj) => {
       return obj.name.toUpperCase();
     },
